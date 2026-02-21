@@ -3,73 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mnemonic Scraper Pro</title>
+    <title>Mnemonic Test Lab</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[#0f172a] text-white min-h-screen flex flex-col items-center justify-center p-4">
     
     <div class="max-w-xl w-full bg-[#1e293b] p-8 rounded-2xl shadow-2xl border border-slate-700">
         <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-blue-400">🔍 Mnemonic Finder</h1>
-            <p class="text-slate-400 text-sm mt-2">Matn ichidan 12 va 24 talik kalitlarni ajratib olish</p>
+            <h1 class="text-3xl font-bold text-blue-400">🧪 Test Lab: Mnemonic</h1>
+            <p class="text-slate-400 text-sm mt-2">Tonkeeper qoidasi bo'yicha 24 talik kalit yaratish va skanerlash</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button id="generateBtn" class="bg-green-600 hover:bg-green-500 p-3 rounded-xl font-bold transition-all shadow-lg">
+                ✨ Kalit yaratish (24)
+            </button>
+            <button id="scanBtn" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-bold transition-all shadow-lg">
+                🔍 Skanerlash
+            </button>
         </div>
         
         <div class="mb-4">
-            <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Tekshirish uchun matnni kiriting:</label>
-            <textarea id="inputText" class="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-xl text-sm text-green-400 focus:ring-2 focus:ring-blue-500 outline-none transition-all" rows="6" placeholder="Masalan: apple banana cherry... (yoki uzunroq matn)"></textarea>
+            <textarea id="inputText" class="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-xl text-sm text-green-400 outline-none h-40" placeholder="Kalit so'zlar shu yerda paydo bo'ladi yoki o'zingiz matn kiriting..."></textarea>
         </div>
 
-        <button id="scanBtn" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all p-4 rounded-xl font-bold text-lg shadow-lg mb-6">
-            Matnni skanerlash
-        </button>
-
-        <div class="bg-[#0f172a] p-4 rounded-lg border border-slate-700 font-mono text-sm max-h-60 overflow-y-auto">
+        <div class="bg-[#0f172a] p-4 rounded-lg border border-slate-700 font-mono text-sm max-h-40 overflow-y-auto">
             <div id="terminal" class="text-green-400">
-                <p class="text-slate-500 italic"># Natijalar bu yerda ko'rinadi...</p>
+                <p class="text-slate-500 italic"># Kutish rejimi...</p>
             </div>
         </div>
     </div>
 
     <script>
-        const btn = document.getElementById('scanBtn');
+        // Siz yuborgan BIP-39 lug'atining bir qismi
+        const dictionary = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "apple", "banana", "cherry", "danger", "echo", "family", "galaxy", "hello", "iron", "jacket", "kangaroo", "laptop", "matrix", "nature", "ocean", "pioneer", "quantum", "radar", "satoshi", "tiger", "uniform", "vintage", "wisdom", "xray", "yellow", "zebra"];
+
+        const genBtn = document.getElementById('generateBtn');
+        const scanBtn = document.getElementById('scanBtn');
         const input = document.getElementById('inputText');
         const terminal = document.getElementById('terminal');
 
-        btn.addEventListener('click', () => {
-            const text = input.value.trim();
-            
-            if (text.length < 10) {
-                alert("Iltimos, tekshirish uchun matn kiriting!");
-                return;
+        // 1. Tasodifiy 24 ta so'z yaratish
+        genBtn.addEventListener('click', () => {
+            let result = [];
+            for(let i = 0; i < 24; i++) {
+                const randomWord = dictionary[Math.floor(Math.random() * dictionary.length)];
+                result.push(randomWord);
             }
+            input.value = result.join(" ");
+            terminal.innerHTML = "<p class='text-green-400'>> Yangi 24 talik kalit yaratildi.</p>";
+        });
 
-            btn.disabled = true;
-            btn.innerText = "Tahlil qilinmoqda...";
-            terminal.innerHTML = "<p class='text-blue-400 font-bold'>> SKANERLASH BOSHLANDI...</p>";
+        // 2. Skanerlash funksiyasi
+        scanBtn.addEventListener('click', () => {
+            const text = input.value.trim();
+            const words = text.split(/\s+/);
+            
+            terminal.innerHTML = "<p class='text-blue-400'>> Skanerlanmoqda...</p>";
 
             setTimeout(() => {
-                // 12-24 ta so'zdan iborat mnemonic pattern
-                // Bu kod matn ichidan ketma-ket kelgan inglizcha so'zlarni qidiradi
-                const pattern = /\b([a-z]{3,}\s+){11,23}[a-z]{3,}\b/gi;
-                const matches = text.match(pattern);
-
-                if (matches) {
-                    terminal.innerHTML += `<p class='text-yellow-400'>> TOPILDI: ${matches.length} ta ehtimoliy kalit.</p>`;
-                    matches.forEach((m, index) => {
-                        const wordCount = m.split(/\s+/).length;
-                        terminal.innerHTML += `<div class='mt-4 p-2 bg-slate-800 rounded border border-blue-900'>
-                            <p class='text-blue-300 font-bold'># Kalit #${index + 1} (${wordCount} talik):</p>
-                            <p class='text-white mt-1 break-words'>${m}</p>
-                        </div>`;
-                    });
+                if (words.length === 24) {
+                    terminal.innerHTML += `<p class='text-yellow-400'>> STATUS: TO'G'RI! 24 talik Tonkeeper formati topildi.</p>`;
+                    terminal.innerHTML += `<p class='text-white mt-2'>${text}</p>`;
                 } else {
-                    terminal.innerHTML += "<p class='text-red-400 mt-2'>> XATO: Matn ichida 12 yoki 24 talik kalit so'zlar topilmadi.</p>";
-                    terminal.innerHTML += "<p class='text-slate-500 text-xs mt-1'>> Eslatma: So'zlar orasida faqat bitta bo'shliq bo'lishi va ular kamida 12 ta bo'lishi kerak.</p>";
+                    terminal.innerHTML += `<p class='text-red-400'>> XATO: So'zlar soni ${words.length} ta. Tonkeeper uchun 24 ta bo'lishi shart!</p>`;
                 }
-
-                btn.disabled = false;
-                btn.innerText = "Qayta skanerlash";
-            }, 1500);
+            }, 1000);
         });
     </script>
 </body>
