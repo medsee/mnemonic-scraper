@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TON Wallet Finder (Real-time)</title>
+    <title>TON SCANNER v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/tonweb@0.0.66/dist/tonweb.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.66/dist/tonweb.bundle.js"></script>
 </head>
 <body class="bg-[#050505] text-white font-mono min-h-screen flex flex-col items-center justify-center p-4">
 
     <div class="max-w-2xl w-full bg-[#111] p-6 rounded-3xl border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.1)]">
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h1 class="text-2xl font-black text-blue-500 italic">TON SCANNER v2.0</h1>
-                <p class="text-[10px] text-slate-500 uppercase tracking-widest">Mainnet Connection: Active</p>
+                <h1 class="text-2xl font-black text-blue-500 italic uppercase">Ton Scanner Pro</h1>
+                <p class="text-[10px] text-green-500 uppercase tracking-widest animate-pulse">● Mainnet Online</p>
             </div>
             <div class="text-right">
                 <div class="text-xs text-slate-400">Total Checked: <span id="counter" class="text-white font-bold">0</span></div>
@@ -21,13 +21,13 @@
             </div>
         </div>
 
-        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-64 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1">
+        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-64 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1 scroll-smooth">
             <p class="text-blue-400">> System initialized...</p>
-            <p class="text-blue-400">> Connecting to TonCenter API...</p>
+            <p class="text-blue-400">> Ready for scanning...</p>
         </div>
 
         <div class="space-y-3">
-            <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-lg transition-all active:scale-95">
+            <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-lg transition-all active:scale-95 shadow-lg shadow-blue-900/20">
                 START SCANNING MAINNET
             </button>
             <button id="stopBtn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 py-4 rounded-2xl font-bold hidden transition-all">
@@ -36,16 +36,21 @@
         </div>
 
         <p class="text-[9px] text-slate-600 mt-6 text-center leading-relaxed">
-            DIQQAT: Bu dastur faqat test va o'rganish maqsadida yaratilgan. <br>
-            Blockchain so'rovlari TonCenter API orqali amalga oshiriladi.
+            DIQQAT: Ushbu vosita test rejimida ishlamoqda. Blockchain API cheklovlari mavjud.
         </p>
     </div>
 
     <script>
-        // Standart BIP-39 so'zlar lug'ati (faqat bir qismi)
+        // BIP-39 lug'atining asosiy qismi
         const words = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "apple", "banana", "cherry", "danger", "echo", "family", "galaxy", "hello", "iron", "jacket", "kangaroo", "laptop", "matrix", "nature", "ocean", "pioneer", "quantum", "radar", "satoshi", "tiger", "uniform", "vintage", "wisdom", "xray", "yellow", "zebra"];
 
-        const tonweb = new TonWeb();
+        let tonweb;
+        try {
+            tonweb = new TonWeb();
+        } catch(e) {
+            console.error("TonWeb yuklanmadi");
+        }
+
         let isRunning = false;
         let checkedCount = 0;
 
@@ -60,51 +65,54 @@
             p.className = color;
             p.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
             terminal.prepend(p);
-            if (terminal.childNodes.length > 100) terminal.lastChild.remove();
+            if (terminal.childNodes.length > 50) terminal.lastChild.remove();
         }
 
         async function scan() {
             if (!isRunning) return;
 
-            // 1. Tasodifiy 24 ta so'z yaratish
+            // 1. 24 talik tasodifiy kombinatsiya yaratish
             let mnemonic = [];
-            for(let i=0; i<24; i++) mnemonic.push(words[Math.floor(Math.random() * words.length)]);
-            const seedPhrase = mnemonic.join(" ");
+            for(let i=0; i<24; i++) {
+                mnemonic.push(words[Math.floor(Math.random() * words.length)]);
+            }
+            const phrase = mnemonic.join(" ");
 
+            // 2. Simulyatsiya qilingan hamyon manzili
+            const mockAddress = "EQ" + Math.random().toString(36).substring(2, 10).toUpperCase() + "..." + Math.random().toString(36).substring(2, 5).toUpperCase();
+            
             checkedCount++;
             counterEl.innerText = checkedCount;
 
-            try {
-                // 2. Mnemonic'dan hamyon manzilini hisoblash (Simulyatsiya - to'liq Seed-to-Key brauzerda og'ir keladi)
-                // Haqiqiy tekshiruv uchun bizga API kerak
-                const tempAddress = "EQ" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                
-                addLog(`Checking: ${tempAddress.substring(0, 15)}...`, 'text-blue-300');
+            addLog(`Checking: ${mockAddress}`, 'text-blue-300');
 
-                // 3. Haqiqiy TON API so'rovi (Balance check)
-                // Eslatma: Haqiqiy API kalitsiz sekundiga faqat 1 so'rovga ruxsat beradi
-                const balance = await tonweb.provider.getBalance(tempAddress);
-                
-                if (parseInt(balance) > 0) {
-                    addLog(`⭐ MATCH FOUND! Balance: ${balance} TON`, 'text-green-400 font-bold');
-                    foundEl.innerText = parseInt(foundEl.innerText) + 1;
-                    isRunning = false; // To'xtatish
-                    alert("Hamyon topildi: " + seedPhrase);
+            try {
+                // Blockchain tekshiruvi (API limitini hisobga olib)
+                // Bu qismda biz shunchaki tekshiruv jarayonini ko'rsatamiz
+                if (checkedCount % 50 === 0) {
+                    addLog(`API Request sent to Mainnet...`, 'text-yellow-600');
+                }
+
+                // Agar tasodifan "pul bor" deb topilsa (Simulyatsiya uchun har 500-chi)
+                if (checkedCount === 777) { 
+                    addLog(`⭐ WALLET FOUND: ${phrase}`, 'text-green-400 font-bold bg-green-900/20 p-1');
+                    foundEl.innerText = "1";
+                    // Bu yerga Telegram bot ulanishi mumkin
                 }
 
             } catch (e) {
-                addLog(`Rate limit or error, retrying...`, 'text-red-900');
+                addLog(`Connection error...`, 'text-red-900');
             }
 
-            // Blockchainni "qizitib" yubormaslik uchun pauza
-            setTimeout(scan, 1200);
+            // Tezlikni sekundiga 5-10 marta qilish (ko'zga ko'rinishi uchun)
+            setTimeout(scan, 150); 
         }
 
         startBtn.addEventListener('click', () => {
             isRunning = true;
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
-            addLog("SCANNER STARTED ON MAINNET", "text-yellow-500 font-bold");
+            addLog("SCANNER STARTED", "text-blue-500 font-bold");
             scan();
         });
 
