@@ -3,72 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mnemonic Test Lab</title>
+    <title>Mnemonic Recovery Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#0f172a] text-white min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-black text-white min-h-screen flex flex-col items-center justify-center p-4">
     
-    <div class="max-w-xl w-full bg-[#1e293b] p-8 rounded-2xl shadow-2xl border border-slate-700">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-blue-400">🧪 Test Lab: Mnemonic</h1>
-            <p class="text-slate-400 text-sm mt-2">Tonkeeper qoidasi bo'yicha 24 talik kalit yaratish va skanerlash</p>
+    <div class="max-w-2xl w-full bg-[#111] p-8 rounded-3xl shadow-[0_0_50px_rgba(59,130,246,0.2)] border border-blue-900/50">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-black text-blue-500 tracking-tighter italic">RECOVERY MODE</h1>
+            <p class="text-slate-500 text-xs mt-2 uppercase tracking-[0.3em]">Test rejimida eski hamyonlarni qidirish</p>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <button id="generateBtn" class="bg-green-600 hover:bg-green-500 p-3 rounded-xl font-bold transition-all shadow-lg">
-                ✨ Kalit yaratish (24)
-            </button>
-            <button id="scanBtn" class="bg-blue-600 hover:bg-blue-500 p-3 rounded-xl font-bold transition-all shadow-lg">
-                🔍 Skanerlash
-            </button>
-        </div>
-        
-        <div class="mb-4">
-            <textarea id="inputText" class="w-full p-4 bg-[#0f172a] border border-slate-700 rounded-xl text-sm text-green-400 outline-none h-40" placeholder="Kalit so'zlar shu yerda paydo bo'ladi yoki o'zingiz matn kiriting..."></textarea>
-        </div>
-
-        <div class="bg-[#0f172a] p-4 rounded-lg border border-slate-700 font-mono text-sm max-h-40 overflow-y-auto">
-            <div id="terminal" class="text-green-400">
-                <p class="text-slate-500 italic"># Kutish rejimi...</p>
+        <div class="bg-black/50 p-6 rounded-2xl border border-slate-800 mb-6 font-mono relative overflow-hidden">
+            <div id="stats" class="grid grid-cols-2 gap-4 mb-4 text-[10px] text-blue-400 border-b border-slate-800 pb-2">
+                <div>CHECKED: <span id="count">0</span></div>
+                <div>FOUND: <span id="found" class="text-green-500">0</span></div>
             </div>
+            <div id="terminal" class="h-48 overflow-y-auto text-[11px] space-y-1 scrollbar-hide">
+                <p class="text-slate-600"># System ready. Press START to scan...</p>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button id="startBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 p-4 rounded-xl font-bold transition-all active:scale-95 shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                START SCANNING
+            </button>
+            <button id="stopBtn" class="bg-red-600 hover:bg-red-500 p-4 rounded-xl font-bold transition-all px-8 hidden">
+                STOP
+            </button>
         </div>
     </div>
 
     <script>
-        // Siz yuborgan BIP-39 lug'atining bir qismi
         const dictionary = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "apple", "banana", "cherry", "danger", "echo", "family", "galaxy", "hello", "iron", "jacket", "kangaroo", "laptop", "matrix", "nature", "ocean", "pioneer", "quantum", "radar", "satoshi", "tiger", "uniform", "vintage", "wisdom", "xray", "yellow", "zebra"];
 
-        const genBtn = document.getElementById('generateBtn');
-        const scanBtn = document.getElementById('scanBtn');
-        const input = document.getElementById('inputText');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const terminal = document.getElementById('terminal');
+        const countEl = document.getElementById('count');
+        
+        let scanning = false;
+        let count = 0;
 
-        // 1. Tasodifiy 24 ta so'z yaratish
-        genBtn.addEventListener('click', () => {
-            let result = [];
+        function generatePhrase() {
+            let phrase = [];
             for(let i = 0; i < 24; i++) {
-                const randomWord = dictionary[Math.floor(Math.random() * dictionary.length)];
-                result.push(randomWord);
+                phrase.push(dictionary[Math.floor(Math.random() * dictionary.length)]);
             }
-            input.value = result.join(" ");
-            terminal.innerHTML = "<p class='text-green-400'>> Yangi 24 talik kalit yaratildi.</p>";
+            return phrase.join(" ");
+        }
+
+        startBtn.addEventListener('click', () => {
+            scanning = true;
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            
+            const runScan = () => {
+                if(!scanning) return;
+                
+                count++;
+                countEl.innerText = count;
+                
+                const phrase = generatePhrase();
+                const p = document.createElement('p');
+                p.className = "text-slate-500 border-l-2 border-slate-800 pl-2";
+                p.innerHTML = `<span class="text-blue-900">[${count}]</span> ` + phrase.substring(0, 40) + "...";
+                
+                terminal.prepend(p);
+
+                // Har 100 tadan birida "soxta" topilgan hamyonni simulyatsiya qilish (test uchun)
+                if (count % 150 === 0) {
+                    const foundP = document.createElement('p');
+                    foundP.className = "bg-green-500/10 text-green-400 p-2 rounded border border-green-500/50 my-2";
+                    foundP.innerHTML = `⭐ <b>MATCH FOUND:</b> ${phrase}`;
+                    terminal.prepend(foundP);
+                    document.getElementById('found').innerText = parseInt(document.getElementById('found').innerText) + 1;
+                }
+
+                if (terminal.childNodes.length > 50) terminal.lastChild.remove();
+                
+                setTimeout(runScan, 50); // Tezlikni shu yerdan o'zgartirish mumkin
+            };
+            runScan();
         });
 
-        // 2. Skanerlash funksiyasi
-        scanBtn.addEventListener('click', () => {
-            const text = input.value.trim();
-            const words = text.split(/\s+/);
-            
-            terminal.innerHTML = "<p class='text-blue-400'>> Skanerlanmoqda...</p>";
-
-            setTimeout(() => {
-                if (words.length === 24) {
-                    terminal.innerHTML += `<p class='text-yellow-400'>> STATUS: TO'G'RI! 24 talik Tonkeeper formati topildi.</p>`;
-                    terminal.innerHTML += `<p class='text-white mt-2'>${text}</p>`;
-                } else {
-                    terminal.innerHTML += `<p class='text-red-400'>> XATO: So'zlar soni ${words.length} ta. Tonkeeper uchun 24 ta bo'lishi shart!</p>`;
-                }
-            }, 1000);
+        stopBtn.addEventListener('click', () => {
+            scanning = false;
+            stopBtn.classList.add('hidden');
+            startBtn.classList.remove('hidden');
         });
     </script>
 </body>
