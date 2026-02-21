@@ -1,33 +1,70 @@
-<script>
-    const btn = document.querySelector('button');
-    const statusBox = document.querySelector('.bg-slate-900 code');
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mnemonic Scraper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0f172a] text-white min-h-screen flex flex-col items-center justify-center p-4">
+    
+    <div class="max-w-md w-full bg-[#1e293b] p-8 rounded-2xl shadow-2xl border border-slate-700">
+        <div class="text-center mb-6">
+            <span class="text-5xl">🔍</span>
+            <h1 class="text-3xl font-bold text-blue-400 mt-4">Mnemonic Scraper</h1>
+            <p class="text-slate-400 text-sm mt-2">Loyiha muvaffaqiyatli ishga tushdi!</p>
+        </div>
+        
+        <div class="bg-[#0f172a] p-4 rounded-lg border border-slate-700 mb-6 font-mono text-sm">
+            <div id="terminal" class="text-green-400">
+                <p># Status: Active</p>
+                <p># File: scraper.py is ready</p>
+                <p># System: GitHub Pages</p>
+            </div>
+        </div>
 
-    btn.addEventListener('click', () => {
-        // Tugmani vaqtincha o'chirish
-        btn.disabled = true;
-        btn.innerText = "Skanerlanmoqda...";
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        <button id="scanBtn" class="w-full bg-blue-600 hover:bg-blue-500 active:scale-95 transition-all p-4 rounded-xl font-bold text-lg shadow-lg">
+            Skanerlashni boshlash
+        </button>
+        
+        <p class="mt-6 text-[10px] text-slate-500 text-center uppercase tracking-widest">
+            Demo Rejim • Python Backend Ulanmagan
+        </p>
+    </div>
 
-        // Skanerlash jarayonini simulyatsiya qilish
-        let logs = [
-            "<br># Scanning files...",
-            "<br># Accessing scraper.py...",
-            "<br># Searching mnemonics...",
-            "<br># Results: 0 found (Test mode)"
-        ];
+    <script>
+        const btn = document.getElementById('scanBtn');
+        const terminal = document.getElementById('terminal');
 
-        let i = 0;
-        const interval = setInterval(() => {
-            if (i < logs.length) {
-                statusBox.innerHTML += logs[i];
-                i++;
-            } else {
-                clearInterval(interval);
-                btn.disabled = false;
-                btn.innerText = "Qayta skanerlash";
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                alert("Skanerlash yakunlandi! (Eslatma: Bu demo rejim)");
-            }
-        }, 800);
-    });
-</script>
+        btn.addEventListener('click', () => {
+            btn.disabled = true;
+            btn.innerText = "Qidirilmoqda...";
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const logs = [
+                "> Shifrlar tekshirilmoqda...",
+                "> scraper.py ishga tushdi",
+                "> Kalit so'zlar qidirilmoqda...",
+                "> Xatolik: Backend ulanmagan!",
+                "> Demo tugadi."
+            ];
+
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < logs.length) {
+                    const p = document.createElement('p');
+                    p.innerHTML = logs[i];
+                    p.classList.add('text-blue-300', 'mt-1');
+                    terminal.appendChild(p);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    btn.disabled = false;
+                    btn.innerText = "Qayta urinish";
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
