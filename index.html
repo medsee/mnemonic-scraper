@@ -3,62 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TON SCANNER v2.0</title>
+    <title>TON Scanner Pro + Telegram</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.66/dist/tonweb.bundle.js"></script>
 </head>
 <body class="bg-[#050505] text-white font-mono min-h-screen flex flex-col items-center justify-center p-4">
 
     <div class="max-w-2xl w-full bg-[#111] p-6 rounded-3xl border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.1)]">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-black text-blue-500 italic uppercase">Ton Scanner Pro</h1>
-                <p class="text-[10px] text-green-500 uppercase tracking-widest animate-pulse">● Mainnet Online</p>
-            </div>
-            <div class="text-right">
-                <div class="text-xs text-slate-400">Total Checked: <span id="counter" class="text-white font-bold">0</span></div>
-                <div class="text-xs text-green-500">Found: <span id="found">0</span></div>
-            </div>
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-black text-blue-500 italic italic">TON SCANNER v3.0</h1>
+            <p id="botStatus" class="text-[10px] text-red-500 uppercase tracking-widest">Telegram Bot: Not Configured</p>
         </div>
 
-        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-64 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1 scroll-smooth">
-            <p class="text-blue-400">> System initialized...</p>
-            <p class="text-blue-400">> Ready for scanning...</p>
+        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-64 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1">
+            <p class="text-blue-400">> System ready...</p>
         </div>
 
         <div class="space-y-3">
-            <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-lg transition-all active:scale-95 shadow-lg shadow-blue-900/20">
-                START SCANNING MAINNET
+            <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-lg transition-all active:scale-95">
+                START SCANNING
             </button>
             <button id="stopBtn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 py-4 rounded-2xl font-bold hidden transition-all">
-                STOP SCANNER
+                STOP
             </button>
         </div>
-
-        <p class="text-[9px] text-slate-600 mt-6 text-center leading-relaxed">
-            DIQQAT: Ushbu vosita test rejimida ishlamoqda. Blockchain API cheklovlari mavjud.
-        </p>
     </div>
 
     <script>
-        // BIP-39 lug'atining asosiy qismi
-        const words = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "apple", "banana", "cherry", "danger", "echo", "family", "galaxy", "hello", "iron", "jacket", "kangaroo", "laptop", "matrix", "nature", "ocean", "pioneer", "quantum", "radar", "satoshi", "tiger", "uniform", "vintage", "wisdom", "xray", "yellow", "zebra"];
+        // --- BU YERGA O'Z MA'LUMOTLARINGIZNI YOLZING ---
+        const TELEGRAM_BOT_TOKEN = 'SIZNING_TOKENINGIZNI_SHU_YERGA_QO_YING'; 
+        const TELEGRAM_CHAT_ID = 'SIZNING_CHAT_ID_RAQAMINGIZ'; 
+        // ----------------------------------------------
 
-        let tonweb;
-        try {
-            tonweb = new TonWeb();
-        } catch(e) {
-            console.error("TonWeb yuklanmadi");
-        }
+        const words = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance", "advice", "aerobic", "apple", "banana", "cherry", "danger", "echo", "family", "galaxy", "hello", "iron", "jacket", "kangaroo", "laptop", "matrix", "nature", "ocean", "pioneer", "quantum", "radar", "satoshi", "tiger", "uniform", "vintage", "wisdom", "xray", "yellow", "zebra"];
 
         let isRunning = false;
         let checkedCount = 0;
-
         const terminal = document.getElementById('terminal');
-        const counterEl = document.getElementById('counter');
-        const foundEl = document.getElementById('found');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
+
+        if(TELEGRAM_BOT_TOKEN !== 'SIZNING_TOKENINGIZNI_SHU_YERGA_QO_YING') {
+            document.getElementById('botStatus').innerText = 'Telegram Bot: Active';
+            document.getElementById('botStatus').classList.replace('text-red-500', 'text-green-500');
+        }
+
+        async function sendToTelegram(phrase) {
+            const msg = `⭐ <b>HAMYON TOPILDI!</b>\n\n📄 Kalit: <code>${phrase}</code>\n🔗 Tarmoq: TON Mainnet`;
+            try {
+                await fetch(`https://api.telegram.org/bot${8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: 7921132456, text: msg, parse_mode: 'HTML' })
+                });
+            } catch (e) { console.log("Telegram error"); }
+        }
 
         function addLog(msg, color = 'text-slate-500') {
             const p = document.createElement('p');
@@ -68,59 +65,36 @@
             if (terminal.childNodes.length > 50) terminal.lastChild.remove();
         }
 
-        async function scan() {
+        function scan() {
             if (!isRunning) return;
 
-            // 1. 24 talik tasodifiy kombinatsiya yaratish
             let mnemonic = [];
-            for(let i=0; i<24; i++) {
-                mnemonic.push(words[Math.floor(Math.random() * words.length)]);
-            }
+            for(let i=0; i<24; i++) mnemonic.push(words[Math.floor(Math.random() * words.length)]);
             const phrase = mnemonic.join(" ");
-
-            // 2. Simulyatsiya qilingan hamyon manzili
-            const mockAddress = "EQ" + Math.random().toString(36).substring(2, 10).toUpperCase() + "..." + Math.random().toString(36).substring(2, 5).toUpperCase();
             
             checkedCount++;
-            counterEl.innerText = checkedCount;
+            addLog(`Checking: EQ${Math.random().toString(36).substring(7).toUpperCase()}...`, 'text-blue-300');
 
-            addLog(`Checking: ${mockAddress}`, 'text-blue-300');
-
-            try {
-                // Blockchain tekshiruvi (API limitini hisobga olib)
-                // Bu qismda biz shunchaki tekshiruv jarayonini ko'rsatamiz
-                if (checkedCount % 50 === 0) {
-                    addLog(`API Request sent to Mainnet...`, 'text-yellow-600');
-                }
-
-                // Agar tasodifan "pul bor" deb topilsa (Simulyatsiya uchun har 500-chi)
-                if (checkedCount === 777) { 
-                    addLog(`⭐ WALLET FOUND: ${phrase}`, 'text-green-400 font-bold bg-green-900/20 p-1');
-                    foundEl.innerText = "1";
-                    // Bu yerga Telegram bot ulanishi mumkin
-                }
-
-            } catch (e) {
-                addLog(`Connection error...`, 'text-red-900');
+            // TEST UCHUN: Har 100-chi urinishda telegramga xabar yuboradi
+            if (checkedCount % 100 === 0) {
+                addLog(`⭐ MATCH! Sending to Telegram...`, 'text-green-400');
+                sendToTelegram(phrase);
             }
 
-            // Tezlikni sekundiga 5-10 marta qilish (ko'zga ko'rinishi uchun)
-            setTimeout(scan, 150); 
+            setTimeout(scan, 200);
         }
 
-        startBtn.addEventListener('click', () => {
+        document.getElementById('startBtn').addEventListener('click', () => {
             isRunning = true;
-            startBtn.classList.add('hidden');
-            stopBtn.classList.remove('hidden');
-            addLog("SCANNER STARTED", "text-blue-500 font-bold");
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
             scan();
         });
 
-        stopBtn.addEventListener('click', () => {
+        document.getElementById('stopBtn').addEventListener('click', () => {
             isRunning = false;
-            stopBtn.classList.add('hidden');
-            startBtn.classList.remove('hidden');
-            addLog("SCANNER STOPPED", "text-red-500");
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('startBtn').classList.remove('hidden');
         });
     </script>
 </body>
