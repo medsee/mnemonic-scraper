@@ -2,65 +2,69 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>TON REAL SCANNER v5.0</title>
+    <title>TON ULTRA-SCANNER v6.0 PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/tonweb@0.0.66/dist/tonweb.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonweb-mnemonic@1.0.1/dist/index.min.js"></script>
 </head>
-<body class="bg-black text-blue-400 font-mono p-5">
+<body class="bg-[#0a0a0c] text-blue-400 font-mono p-4 min-h-screen flex flex-col items-center">
 
-    <div class="max-w-xl mx-auto border border-blue-900 p-6 rounded-xl bg-slate-950">
-        <h1 class="text-center text-xl font-bold mb-4">TON REAL-TIME SCANNER</h1>
+    <div class="max-w-2xl w-full border border-blue-500/20 bg-[#111114] p-8 rounded-3xl shadow-2xl">
+        <h1 class="text-2xl font-black text-center mb-2 tracking-tighter text-white">TON <span class="text-blue-500">PRO</span> SCANNER</h1>
+        <p class="text-center text-[10px] text-slate-500 mb-6 uppercase tracking-widest text-green-500">Status: Algorithm Optimized</p>
         
-        <div id="terminal" class="h-64 overflow-y-auto bg-black p-3 text-[10px] border border-blue-900/50 mb-4 rounded">
-            <p>> System initialized. Ready to derive addresses...</p>
+        <div id="terminal" class="h-80 overflow-y-auto bg-black/50 p-4 text-[11px] border border-slate-800 rounded-2xl mb-6 space-y-1 scrollbar-hide">
+            <p class="text-blue-500/50">> System ready. Mnemonic v2.0 checksum enabled.</p>
         </div>
 
-        <button id="startBtn" class="w-full bg-blue-700 text-white py-3 rounded hover:bg-blue-600 transition">START SCANNING</button>
-        
-        <div class="mt-4 text-[9px] text-slate-500">
-            <p>API Status: <span class="text-green-500">Connected</span></p>
-            <p>Method: BIP39 Mnemonic to v4R2 Wallet</p>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-500 uppercase">Checked</p>
+                <p id="count" class="text-xl font-bold text-white">0</p>
+            </div>
+            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                <p class="text-[9px] text-slate-500 uppercase">Found</p>
+                <p id="found" class="text-xl font-bold text-green-500">0</p>
+            </div>
         </div>
+
+        <button id="actionBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/20">
+            START SCANNING
+        </button>
     </div>
 
     <script>
         const tonweb = new TonWeb();
-        const terminal = document.getElementById('terminal');
         let isRunning = false;
-        let words = [];
+        let checkedCount = 0;
+        let foundCount = 0;
 
-        // BIP39 lug'atini yuklash
-        async function loadWords() {
-            const res = await fetch('https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt');
-            const text = await res.text();
-            words = text.split('\n').filter(w => w.length > 0);
-            log("Dictionary Loaded: 2048 words.", "text-green-400");
-        }
-
-        function log(msg, color = "text-blue-300") {
+        function log(msg, type = "info") {
+            const colors = {
+                info: "text-slate-500",
+                success: "text-green-400 font-bold",
+                error: "text-red-500",
+                process: "text-blue-400"
+            };
             const p = document.createElement('p');
-            p.className = color;
+            p.className = colors[type];
             p.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            terminal.prepend(p);
-            if(terminal.childNodes.length > 50) terminal.lastChild.remove();
+            const term = document.getElementById('terminal');
+            term.prepend(p);
+            if(term.childNodes.length > 100) term.lastChild.remove();
         }
 
-        async function scan() {
+        async function startScanning() {
             if(!isRunning) return;
 
             try {
-                // 1. 24 ta tasodifiy so'z tanlash
-                let mnemonic = [];
-                for(let i=0; i<24; i++) {
-                    mnemonic.push(words[Math.floor(Math.random() * words.length)]);
-                }
-                const phrase = mnemonic.join(" ");
-
-                // 2. So'zlardan Seed (kalit) yaratish
-                const seed = await tonweb.utils.mnemonicToSeed(mnemonic);
-                const keyPair = tonweb.utils.keyPairFromSeed(seed);
+                // 1. Haqiqiy va valid mnemonic generatsiya qilish (Checksum bilan)
+                const mnemonic = await tonwebMnemonic.generateMnemonic();
                 
-                // 3. Haqiqiy v4R2 hamyon manzilini hisoblash
+                // 2. Kalitlarni olish
+                const keyPair = await tonwebMnemonic.mnemonicToKeyPair(mnemonic);
+                
+                // 3. v4R2 hamyon manzilini hisoblash
                 const WalletClass = tonweb.wallet.all['v4R2'];
                 const wallet = new WalletClass(tonweb.provider, { publicKey: keyPair.publicKey });
                 const address = await wallet.getAddress();
@@ -68,27 +72,35 @@
 
                 // 4. Balansni tekshirish
                 const balance = await tonweb.provider.getBalance(addrStr);
+                
+                checkedCount++;
+                document.getElementById('count').innerText = checkedCount;
 
                 if(parseInt(balance) > 0) {
-                    log(`💰 FOUND! ${addrStr} | Balance: ${balance/1000000000} TON`, "text-yellow-400 font-bold");
-                    // Bu yerda Telegramga yuborish funksiyasini chaqirishingiz mumkin
+                    foundCount++;
+                    document.getElementById('found').innerText = foundCount;
+                    log(`💰 BOOM! Found: ${balance/1e9} TON | ${mnemonic.join(' ')}`, "success");
+                    // Telegramga yuborish funksiyasi...
                 } else {
-                    log(`Checking: ${addrStr.substring(0,12)}... [Empty]`, "text-slate-600");
+                    log(`Check: ${addrStr.substring(0,15)}... (Empty)`, "process");
                 }
 
             } catch (e) {
-                log("Error derivation: API Limit or invalid seed", "text-red-500");
+                log("API Limit reached. Cooling down...", "error");
+                await new Promise(r => setTimeout(r, 2000)); // 2 sekund kutish
             }
 
-            setTimeout(scan, 500); // API bloklamasligi uchun biroz kutish
+            // API bloklamasligi uchun xavfsiz tezlik
+            setTimeout(startScanning, 1500); 
         }
 
-        document.getElementById('startBtn').onclick = async function() {
-            if(words.length === 0) await loadWords();
+        document.getElementById('actionBtn').onclick = function() {
             isRunning = !isRunning;
-            this.innerText = isRunning ? "STOP" : "START SCANNING";
-            this.className = isRunning ? "w-full bg-red-900 text-white py-3 rounded" : "w-full bg-blue-700 text-white py-3 rounded";
-            if(isRunning) scan();
+            this.innerText = isRunning ? "STOP ENGINE" : "START SCANNING";
+            this.className = isRunning ? 
+                "w-full bg-red-600/20 text-red-500 py-4 rounded-2xl font-bold border border-red-500/50" : 
+                "w-full bg-blue-600 text-white py-4 rounded-2xl font-bold";
+            if(isRunning) startScanning();
         };
     </script>
 </body>
