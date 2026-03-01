@@ -1,97 +1,182 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REAL TON SCANNER v5.1</title>
+    <title>TON Miner Scanner</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- To'g'ri ishlaydigan BIP39 -->
-    <script src="https://cdn.jsdelivr.net/npm/bip39@3.0.4/dist/index.browser.js"></script>
-
-    <!-- To'g'ri TONWEB CDN -->
-    <script src="https://unpkg.com/tonweb@0.0.66/dist/tonweb.js"></script>
+    <style>
+        body {
+            background: #0c0f20;
+            font-family: Arial;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .box {
+            background: #161a33;
+            padding: 20px;
+            border-radius: 12px;
+            width: 350px;
+            margin: auto;
+        }
+        input {
+            width: 90%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background: #0f1328;
+            color: white;
+        }
+        button {
+            width: 95%;
+            padding: 12px;
+            margin-top: 15px;
+            background: #1fa3ff;
+            color: white;
+            border: none;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        #graph {
+            width: 100%;
+            height: 140px;
+            background: #0f1328;
+            margin-top: 20px;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        #graph_line {
+            position: absolute;
+            bottom: 0;
+            height: 2px;
+            background: #1fa3ff;
+            width: 3px;
+        }
+        .history-box {
+            margin-top: 25px;
+            text-align: left;
+            background: #11152e;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .history-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #22284d;
+        }
+    </style>
 </head>
 
-<body class="bg-black text-white font-mono p-6">
+<body>
 
-<div class="max-w-xl mx-auto bg-[#111] p-6 rounded-2xl border border-blue-500/40">
+<h2>TON Miner Checker</h2>
 
-    <h1 class="text-center text-xl font-bold text-blue-400 mb-4">
-        REAL TON MULTI-SCANNER v5.1
-    </h1>
+<div class="box">
+    <input id="wallet" placeholder="Wallet address">
+    <button onclick="startScan()">Start Scan</button>
+    <p id="status"></p>
 
-    <div id="terminal" class="bg-black h-80 overflow-y-auto p-3 rounded-xl text-xs border border-slate-800">
+    <h3>Wallet Balance</h3>
+    <p id="balance">0 TON</p>
+
+    <h3>Real-Time Hashrate</h3>
+    <div id="graph">
+        <div id="graph_line"></div>
     </div>
 
-    <button id="startBtn" class="w-full bg-blue-600 py-3 mt-4 rounded-xl font-bold hover:bg-blue-500">
-        START
-    </button>
-
-    <button id="stopBtn" class="w-full bg-red-600 py-3 mt-3 rounded-xl font-bold hidden hover:bg-red-500">
-        STOP
-    </button>
+    <h3>Scan History</h3>
+    <div class="history-box" id="scan_history"></div>
 </div>
 
 <script>
+const backend = "https://YOUR_BACKEND_URL"; // 🔥 SHU YERNI O'ZGARTIRASAN
 
-const tonweb = new TonWeb();
+// =======================
+// 📌 REAL-TIME GRAPH
+// =======================
+let x = 0;
+setInterval(() => {
+    let graph = document.getElementById("graph_line");
+    x += 8;
+    if (x > 350) x = 0;
 
-function log(msg, color="text-slate-400") {
-    const box = document.getElementById("terminal");
-    const p = document.createElement("p");
-    p.className = color;
-    p.innerText = `[${new Date().toLocaleTimeString()}]  ${msg}`;
-    box.prepend(p);
-}
+    let h = Math.floor(Math.random() * 110) + 10;
+    graph.style.left = x + "px";
+    graph.style.height = h + "px";
+}, 150);
 
-let running = false;
-
-async function scan() {
-
-    while (running) {
-
-        try {
-            const mnemonic = bip39.generateMnemonic(256);
-            log("Mnemonic created", "text-blue-400");
-
-            const seed = await bip39.mnemonicToSeed(mnemonic);
-            const keyPair = TonWeb.utils.keyPairFromSeed(seed.slice(0, 32));
-
-            const WalletClass = tonweb.wallet.all.v4R2;
-            const wallet = new WalletClass(tonweb.provider, { publicKey: keyPair.publicKey });
-            const address = await wallet.getAddress();
-            const addrStr = address.toString(true, true, true);
-
-            log("Checking " + addrStr.substring(0, 14) + "...");
-
-            await new Promise(r => setTimeout(r, 300));
-
-        } catch (err) {
-            log("ERROR: " + err.message, "text-red-500");
-        }
+// =======================
+// 📌 TON BALANCE CHECK API
+// =======================
+async function getBalance(wallet) {
+    try {
+        let res = await fetch(`https://tonapi.io/v2/accounts/${wallet}`);
+        let data = await res.json();
+        let balance = (data.balance / 1000000000).toFixed(2);
+        document.getElementById("balance").innerHTML = balance + " TON";
+    } catch {
+        document.getElementById("balance").innerHTML = "Error";
     }
 }
 
-document.getElementById("startBtn").onclick = () => {
-    running = true;
-    document.getElementById("startBtn").classList.add("hidden");
-    document.getElementById("stopBtn").classList.remove("hidden");
+// =======================
+// 📌 SCAN + TELEGRAM ALERT
+// =======================
+function startScan() {
+    let wallet = document.getElementById("wallet").value;
+    if (!wallet) return alert("Wallet kiriting!");
 
-    log("Scanner started!", "text-green-400");
+    document.getElementById("status").innerHTML = "⏳ Scanning...";
 
-    scan();
-};
+    // balans tekshir
+    getBalance(wallet);
 
-document.getElementById("stopBtn").onclick = () => {
-    running = false;
-    document.getElementById("stopBtn").classList.add("hidden");
-    document.getElementById("startBtn").classList.remove("hidden");
+    // backendga scan yubor
+    fetch(`${backend}/api/scan`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({wallet: wallet})
+    })
+    .then(res => res.json())
+    .then(() => {
+        document.getElementById("status").innerHTML = "✔ Completed — Check Telegram bot";
+        saveHistory(wallet);
+        loadHistory();
+    });
+}
 
-    log("Scanner stopped.", "text-red-400");
-};
+// =======================
+// 📌 SCAN TARIXINI SAQLASH
+// =======================
+function saveHistory(wallet) {
+    let history = JSON.parse(localStorage.getItem("scan_history") || "[]");
+    history.unshift({
+        wallet: wallet,
+        time: new Date().toLocaleString()
+    });
+    localStorage.setItem("scan_history", JSON.stringify(history));
+}
 
+function loadHistory() {
+    let history = JSON.parse(localStorage.getItem("scan_history") || "[]");
+    let box = document.getElementById("scan_history");
+    box.innerHTML = "";
+
+    history.forEach(h => {
+        box.innerHTML += `
+            <div class="history-item">
+                <b>${h.wallet}</b><br>
+                <small>${h.time}</small>
+            </div>
+        `;
+    });
+}
+
+loadHistory();
 </script>
 
 </body>
